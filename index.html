@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive physics simulation for Ballistic Pendulum and Circular Ramp Inelastic Collision with Friction Slide — The Thinking Experiment.">
+  <meta name="color-scheme" content="light">
+  <title>Ballistic Pendulum &amp; Ramp Collision Lab | The Thinking Experiment</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/css/sim.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to simulation</a>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-top">
+        <a class="brand-badge" href="https://thinking-experiment-sims.github.io/interactive-physics/">
+          ← The Thinking Experiment Hub
+        </a>
+        <span class="lab-badge">Momentum &amp; Energy Lab</span>
+      </div>
+      <p class="kicker">AP Physics 1 · Conservation Laws &amp; Inelastic Collisions</p>
+      <h1 id="main-content" tabindex="-1">Ballistic Pendulum &amp; Ramp Collision Lab</h1>
+      <p class="subtitle">
+        Explore two-stage collision problems where <strong>momentum is conserved</strong> during an inelastic impact,
+        while <strong>mechanical energy</strong> governs the motion before and after.
+      </p>
+    </header>
+
+    <main>
+      <!-- Top Scenario Tabs -->
+      <div class="tabs-shell">
+        <div class="tablist" role="tablist" aria-label="Simulation scenarios">
+          <button type="button" role="tab" id="tab-pendulum" class="tab-btn" aria-selected="true" tabindex="0">
+            1. Ballistic Pendulum
+          </button>
+          <button type="button" role="tab" id="tab-ramp" class="tab-btn" aria-selected="false" tabindex="-1">
+            2. Circular Ramp &amp; Friction Slide
+          </button>
+        </div>
+
+        <!-- TAB 1: BALLISTIC PENDULUM -->
+        <div role="tabpanel" id="panel-pendulum" aria-labelledby="tab-pendulum">
+          <div class="panel-inner">
+            <div class="app-layout">
+              <!-- Controls Column -->
+              <section class="panel narrow" aria-labelledby="p-controls-heading">
+                <div class="panel-head">
+                  <h2 id="p-controls-heading">Parameters</h2>
+                  <span class="info-line">g = 9.8 m/s²</span>
+                </div>
+                <p class="hint">Sign convention: +x to the right, +y upward. Reference y = 0 at catcher rest height.</p>
+
+                <div class="preset-box">
+                  <h3>Classroom Preset</h3>
+                  <div class="button-row compact">
+                    <button type="button" class="ghost" data-p-preset="classroom">
+                      Default Problem (63 g, 4 m/s, 116 g)
+                    </button>
+                    <button type="button" class="ghost" data-p-preset="fast">
+                      High-Speed Shot (50 g, 8 m/s, 200 g)
+                    </button>
+                  </div>
+                </div>
+
+                <div class="controls-stack">
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="p-ball-mass">Ball Mass (m<sub>b</sub>)</label>
+                      <span class="slider-val" id="p-ball-mass-val">63 g (0.063 kg)</span>
+                    </div>
+                    <input type="range" id="p-ball-mass" min="10" max="300" step="1" value="63">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="p-ball-vel">Initial Velocity (v<sub>0</sub>)</label>
+                      <span class="slider-val" id="p-ball-vel-val">4.0 m/s</span>
+                    </div>
+                    <input type="range" id="p-ball-vel" min="0.5" max="12.0" step="0.1" value="4.0">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="p-catcher-mass">Catcher Mass (m<sub>c</sub>)</label>
+                      <span class="slider-val" id="p-catcher-mass-val">116 g (0.116 kg)</span>
+                    </div>
+                    <input type="range" id="p-catcher-mass" min="20" max="500" step="1" value="116">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="p-arm-length">Pendulum Arm Length (L)</label>
+                      <span class="slider-val" id="p-arm-length-val">1.00 m</span>
+                    </div>
+                    <input type="range" id="p-arm-length" min="0.40" max="2.00" step="0.05" value="1.00">
+                  </div>
+                </div>
+
+                <div class="toggle-group">
+                  <label class="toggle-line" for="p-pause-peak">
+                    <input type="checkbox" id="p-pause-peak" checked>
+                    <span>Pause automatically at peak height</span>
+                  </label>
+                  <label class="toggle-line" for="p-slow-mo">
+                    <input type="checkbox" id="p-slow-mo">
+                    <span>Slow motion (0.5× speed)</span>
+                  </label>
+                  <label class="toggle-line" for="p-show-answer">
+                    <input type="checkbox" id="p-show-answer" checked>
+                    <span>Show numerical answers &amp; derivation</span>
+                  </label>
+                </div>
+
+                <div class="button-row">
+                  <button type="button" id="p-fire-btn" class="amber">▶ Fire Ball</button>
+                  <button type="button" id="p-pause-btn" class="ghost">Pause</button>
+                  <button type="button" id="p-reset-btn" class="ghost">Reset</button>
+                </div>
+                <div class="button-row">
+                  <button type="button" id="p-record-btn" class="primary">Record Trial</button>
+                </div>
+
+                <p class="status" id="p-status" aria-live="polite">
+                  Ready. Press <strong>Fire Ball</strong> to launch the 63 g metal ball at 4.0 m/s.
+                </p>
+              </section>
+
+              <!-- Simulation Canvas + Readouts Column -->
+              <section class="panel wide" aria-labelledby="p-stage-heading">
+                <div class="panel-head">
+                  <h2 id="p-stage-heading">Ballistic Pendulum Stage</h2>
+                  <span class="phase-pill" id="p-phase-badge">Ready</span>
+                </div>
+
+                <div class="canvas-wrap">
+                  <canvas id="p-canvas" class="sim-canvas" width="760" height="400" role="img"
+                    aria-label="Interactive ballistic pendulum animation showing a metal ball fired into a suspended catcher and swinging to maximum height.">
+                  </canvas>
+                </div>
+
+                <!-- Live Readouts -->
+                <dl class="metrics-grid" aria-live="polite">
+                  <div class="metric-card">
+                    <dt>Initial Momentum (p<sub>i</sub>)</dt>
+                    <dd id="p-out-momentum">0.252 kg·m/s</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>Post-Collision Speed (v′)</dt>
+                    <dd id="p-out-vprime">1.41 m/s</dd>
+                  </div>
+                  <div class="metric-card highlight-card">
+                    <dt>Max Rise Height (h)</dt>
+                    <dd id="p-out-height">0.101 m (10.1 cm)</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>Max Swing Angle (θ<sub>max</sub>)</dt>
+                    <dd id="p-out-angle">26.0°</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>KE Lost in Collision (ΔE<sub>th</sub>)</dt>
+                    <dd id="p-out-loss">0.327 J (64.8%)</dd>
+                  </div>
+                </dl>
+
+                <!-- Energy Bar Chart -->
+                <div class="energy-box">
+                  <h3>Live Energy Distribution (System: Ball + Catcher + Earth)</h3>
+                  <div class="energy-bars" id="p-energy-bars">
+                    <div class="bar-row">
+                      <span class="bar-label">Kinetic (KE)</span>
+                      <div class="bar-track"><div class="bar-fill bar-ke" id="p-bar-ke"></div></div>
+                      <span class="bar-num" id="p-num-ke">0.504 J</span>
+                    </div>
+                    <div class="bar-row">
+                      <span class="bar-label">Potential (PE<sub>g</sub>)</span>
+                      <div class="bar-track"><div class="bar-fill bar-pe" id="p-bar-pe"></div></div>
+                      <span class="bar-num" id="p-num-pe">0.000 J</span>
+                    </div>
+                    <div class="bar-row">
+                      <span class="bar-label">Thermal (Collision)</span>
+                      <div class="bar-track"><div class="bar-fill bar-th" id="p-bar-th"></div></div>
+                      <span class="bar-num" id="p-num-th">0.000 J</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Step-by-Step Solution & Discovery -->
+              <section class="panel full" aria-labelledby="p-analysis-heading">
+                <div class="panel-head">
+                  <h2 id="p-analysis-heading">Two-Stage Physics Breakdown &amp; Trials</h2>
+                </div>
+
+                <div class="callout amber" id="p-solution-box">
+                  <h3>Step-by-Step Solution (Current Parameters)</h3>
+                  <div id="p-solution-steps" class="steps-grid"></div>
+                </div>
+
+                <div class="sub-grid">
+                  <div>
+                    <h3>Recorded Trials</h3>
+                    <div class="table-wrap">
+                      <table>
+                        <caption>Recorded ballistic pendulum trials</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">m<sub>b</sub> (g)</th>
+                            <th scope="col">v<sub>0</sub> (m/s)</th>
+                            <th scope="col">m<sub>c</sub> (g)</th>
+                            <th scope="col">v′ (m/s)</th>
+                            <th scope="col">h (m)</th>
+                            <th scope="col">θ<sub>max</sub> (°)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="p-trials-body">
+                          <tr class="empty-row"><td colspan="7">No trials recorded yet. Click <strong>Record Trial</strong> after running a shot.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="button-row compact">
+                      <button type="button" id="p-clear-trials" class="ghost">Clear Trials</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3>Guided Discovery</h3>
+                    <div class="discovery-list">
+                      <details>
+                        <summary>1. Why can't we set initial KE equal to final PE?</summary>
+                        <p>
+                          Compare the Kinetic Energy before and right after the ball embeds in the catcher.
+                          <strong>Question:</strong> What percentage of the initial kinetic energy is converted to thermal/sound energy during the collision, and why is momentum still conserved?
+                        </p>
+                      </details>
+                      <details>
+                        <summary>2. Does pendulum arm length L change the maximum height h?</summary>
+                        <p>
+                          Keep masses and v<sub>0</sub> fixed and vary L from 0.60 m to 1.80 m.
+                          <strong>Question:</strong> Which quantity changes—the height h or the angle θ<sub>max</sub>—and why?
+                        </p>
+                      </details>
+                      <details>
+                        <summary>3. Doubling the ball's initial speed</summary>
+                        <p>
+                          Double v<sub>0</sub> from 3.0 m/s to 6.0 m/s and record both trials.
+                          <strong>Question:</strong> By what factor does the final height h increase? Explain using v′ and h = v′² / (2g).
+                        </p>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: CIRCULAR RAMP + COLLISION + FRICTION SLIDE -->
+        <div role="tabpanel" id="panel-ramp" aria-labelledby="tab-ramp" hidden="until-found">
+          <div class="panel-inner">
+            <div class="app-layout">
+              <!-- Controls Column -->
+              <section class="panel narrow" aria-labelledby="r-controls-heading">
+                <div class="panel-head">
+                  <h2 id="r-controls-heading">Parameters</h2>
+                  <span class="info-line">g = 9.8 m/s²</span>
+                </div>
+                <p class="hint">Sign convention: +x to the right along flat surface, y = 0 at bottom of ramp.</p>
+
+                <div class="preset-box">
+                  <h3>Classroom Preset</h3>
+                  <div class="button-row compact">
+                    <button type="button" class="ghost" data-r-preset="classroom">
+                      Default Problem (12 kg, R=1 m, 8 kg, μ=0.2)
+                    </button>
+                    <button type="button" class="ghost" data-r-preset="icy">
+                      Low Friction (10 kg, R=1.5 m, 5 kg, μ=0.08)
+                    </button>
+                  </div>
+                </div>
+
+                <div class="controls-stack">
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="r-m1">Ramp Mass (m<sub>1</sub>)</label>
+                      <span class="slider-val" id="r-m1-val">12.0 kg</span>
+                    </div>
+                    <input type="range" id="r-m1" min="1" max="30" step="0.5" value="12">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="r-radius">Ramp Radius (R)</label>
+                      <span class="slider-val" id="r-radius-val">1.00 m</span>
+                    </div>
+                    <input type="range" id="r-radius" min="0.4" max="3.0" step="0.1" value="1.0">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="r-m2">Target Mass (m<sub>2</sub>)</label>
+                      <span class="slider-val" id="r-m2-val">8.0 kg</span>
+                    </div>
+                    <input type="range" id="r-m2" min="1" max="30" step="0.5" value="8">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="r-mu">Friction Coefficient (μ)</label>
+                      <span class="slider-val" id="r-mu-val">0.20</span>
+                    </div>
+                    <input type="range" id="r-mu" min="0.05" max="0.80" step="0.01" value="0.20">
+                  </div>
+                </div>
+
+                <div class="toggle-group">
+                  <label class="toggle-line" for="r-slow-mo">
+                    <input type="checkbox" id="r-slow-mo">
+                    <span>Slow motion (0.5× speed)</span>
+                  </label>
+                  <label class="toggle-line" for="r-show-answer">
+                    <input type="checkbox" id="r-show-answer" checked>
+                    <span>Show numerical answers &amp; derivation</span>
+                  </label>
+                </div>
+
+                <div class="button-row">
+                  <button type="button" id="r-drop-btn" class="amber">▶ Drop Mass m₁</button>
+                  <button type="button" id="r-pause-btn" class="ghost">Pause</button>
+                  <button type="button" id="r-reset-btn" class="ghost">Reset</button>
+                </div>
+                <div class="button-row">
+                  <button type="button" id="r-record-btn" class="primary">Record Trial</button>
+                </div>
+
+                <p class="status" id="r-status" aria-live="polite">
+                  Ready. Press <strong>Drop Mass m₁</strong> to release 12 kg from rest at height R = 1.00 m.
+                </p>
+              </section>
+
+              <!-- Simulation Canvas + Readouts Column -->
+              <section class="panel wide" aria-labelledby="r-stage-heading">
+                <div class="panel-head">
+                  <h2 id="r-stage-heading">Circular Ramp &amp; Friction Track</h2>
+                  <span class="phase-pill" id="r-phase-badge">Ready</span>
+                </div>
+
+                <div class="canvas-wrap">
+                  <canvas id="r-canvas" class="sim-canvas" width="760" height="400" role="img"
+                    aria-label="Interactive simulation of mass m1 sliding down a frictionless circular ramp, colliding inelastically with m2, and sliding to a stop with friction.">
+                  </canvas>
+                </div>
+
+                <!-- Live Readouts -->
+                <dl class="metrics-grid" aria-live="polite">
+                  <div class="metric-card">
+                    <dt>Bottom Speed Before Impact (v₁)</dt>
+                    <dd id="r-out-v1">4.43 m/s</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>Post-Collision Speed (v₂)</dt>
+                    <dd id="r-out-v2">2.66 m/s</dd>
+                  </div>
+                  <div class="metric-card highlight-card">
+                    <dt>(a) Stopping Distance (d)</dt>
+                    <dd id="r-out-dist">1.80 m</dd>
+                  </div>
+                  <div class="metric-card highlight-card">
+                    <dt>(b) Work by Friction (W<sub>f</sub>)</dt>
+                    <dd id="r-out-work">-70.6 J</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>Friction Force (f<sub>k</sub>)</dt>
+                    <dd id="r-out-fk">39.2 N</dd>
+                  </div>
+                </dl>
+
+                <!-- Energy Bar Chart -->
+                <div class="energy-box">
+                  <h3>Live Energy Distribution (System: m₁ + m₂ + Ramp/Track + Earth)</h3>
+                  <div class="energy-bars" id="r-energy-bars">
+                    <div class="bar-row">
+                      <span class="bar-label">Potential (PE<sub>g</sub>)</span>
+                      <div class="bar-track"><div class="bar-fill bar-pe" id="r-bar-pe"></div></div>
+                      <span class="bar-num" id="r-num-pe">117.6 J</span>
+                    </div>
+                    <div class="bar-row">
+                      <span class="bar-label">Kinetic (KE)</span>
+                      <div class="bar-track"><div class="bar-fill bar-ke" id="r-bar-ke"></div></div>
+                      <span class="bar-num" id="r-num-ke">0.0 J</span>
+                    </div>
+                    <div class="bar-row">
+                      <span class="bar-label">Thermal (Collision)</span>
+                      <div class="bar-track"><div class="bar-fill bar-th" id="r-bar-th-coll"></div></div>
+                      <span class="bar-num" id="r-num-th-coll">0.0 J</span>
+                    </div>
+                    <div class="bar-row">
+                      <span class="bar-label">Thermal (Friction)</span>
+                      <div class="bar-track"><div class="bar-fill bar-fr" id="r-bar-th-fric"></div></div>
+                      <span class="bar-num" id="r-num-th-fric">0.0 J</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Step-by-Step Solution & Discovery -->
+              <section class="panel full" aria-labelledby="r-analysis-heading">
+                <div class="panel-head">
+                  <h2 id="r-analysis-heading">Three-Stage Physics Breakdown &amp; Trials</h2>
+                </div>
+
+                <div class="callout amber" id="r-solution-box">
+                  <h3>Step-by-Step Solution (Current Parameters)</h3>
+                  <div id="r-solution-steps" class="steps-grid"></div>
+                </div>
+
+                <div class="sub-grid">
+                  <div>
+                    <h3>Recorded Trials</h3>
+                    <div class="table-wrap">
+                      <table>
+                        <caption>Recorded ramp collision and friction slide trials</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">m₁ (kg)</th>
+                            <th scope="col">R (m)</th>
+                            <th scope="col">m₂ (kg)</th>
+                            <th scope="col">μ</th>
+                            <th scope="col">d (m)</th>
+                            <th scope="col">W<sub>f</sub> (J)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="r-trials-body">
+                          <tr class="empty-row"><td colspan="7">No trials recorded yet. Click <strong>Record Trial</strong> after running a drop.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="button-row compact">
+                      <button type="button" id="r-clear-trials" class="ghost">Clear Trials</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3>Guided Discovery</h3>
+                    <div class="discovery-list">
+                      <details>
+                        <summary>1. Two different ways energy leaves mechanical form</summary>
+                        <p>
+                          Watch the four energy bars during a full run.
+                          <strong>Question:</strong> How is the thermal energy from the collision different from the work done by friction during the slide?
+                        </p>
+                      </details>
+                      <details>
+                        <summary>2. How does friction coefficient μ affect distance vs. work?</summary>
+                        <p>
+                          Double μ from 0.20 to 0.40 while keeping m₁, m₂, and R fixed.
+                          <strong>Question:</strong> What happens to the stopping distance d, and what happens to the total work done by friction W<sub>f</sub>? Why?
+                        </p>
+                      </details>
+                      <details>
+                        <summary>3. Increasing target mass m₂</summary>
+                        <p>
+                          Increase m₂ from 8 kg to 16 kg.
+                          <strong>Question:</strong> Why do both the stopping distance and the magnitude of friction work decrease even though the combined mass is heavier?
+                        </p>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        <strong>The Thinking Experiment</strong> · Built for AP Physics 1 &amp; High School Mechanics ·
+        <a href="https://github.com/Thinking-Experiment-Sims/ballistic-pendulum-sim" target="_blank" rel="noopener">Source on GitHub</a>
+      </p>
+    </footer>
+  </div>
+
+  <script src="src/js/physics.js"></script>
+  <script src="src/js/app.js"></script>
+</body>
+</html>

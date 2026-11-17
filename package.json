@@ -1,0 +1,10 @@
+{
+  "name": "ballistic-pendulum-sim",
+  "version": "1.0.0",
+  "description": "Interactive Ballistic Pendulum and Circular Ramp Inelastic Collision Simulation for The Thinking Experiment",
+  "scripts": {
+    "test": "node --test tests/physics.test.js"
+  },
+  "author": "Vladimir Lopez",
+  "license": "MIT"
+}
