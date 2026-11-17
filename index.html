@@ -42,6 +42,9 @@
           <button type="button" role="tab" id="tab-ramp" class="tab-btn" aria-selected="false" tabindex="-1">
             2. Circular Ramp &amp; Friction Slide
           </button>
+          <button type="button" role="tab" id="tab-mystery" class="tab-btn" aria-selected="false" tabindex="-1">
+            3. Mystery Mass Lab (Find Masses)
+          </button>
         </div>
 
         <!-- TAB 1: BALLISTIC PENDULUM -->
@@ -469,6 +472,189 @@
                         <p>
                           Increase m₂ from 8 kg to 16 kg.
                           <strong>Question:</strong> Why do both the stopping distance and the magnitude of friction work decrease even though the combined mass is heavier?
+                        </p>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: MYSTERY MASS LAB (MEASURE HEIGHT, FIND MASSES) -->
+        <div role="tabpanel" id="panel-mystery" aria-labelledby="tab-mystery" hidden="until-found">
+          <div class="panel-inner">
+            <div class="app-layout">
+              <!-- Controls Column -->
+              <section class="panel narrow" aria-labelledby="m-controls-heading">
+                <div class="panel-head">
+                  <h2 id="m-controls-heading">Investigation Setup</h2>
+                  <span class="info-line">g = 9.8 m/s²</span>
+                </div>
+                <p class="hint">Fire the ball, measure the peak rise height h with the caliper, and solve for the unknown mass.</p>
+
+                <div class="field-group">
+                  <label for="m-mode">Unknown Quantity</label>
+                  <select id="m-mode">
+                    <option value="catcher">Find Unknown Catcher Mass (m_c)</option>
+                    <option value="ball">Find Unknown Ball Mass (m_b)</option>
+                  </select>
+                </div>
+
+                <div class="preset-box">
+                  <h3>Mystery Sample</h3>
+                  <div class="button-row compact">
+                    <button type="button" class="ghost" data-m-sample="A">Sample A</button>
+                    <button type="button" class="ghost" data-m-sample="B">Sample B</button>
+                    <button type="button" class="ghost" data-m-sample="C">Sample C</button>
+                    <button type="button" class="ghost" id="m-random-btn">Randomize</button>
+                  </div>
+                </div>
+
+                <div class="controls-stack">
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="m-known-mass" id="m-known-mass-label">Known Ball Mass (m<sub>b</sub>)</label>
+                      <span class="slider-val" id="m-known-mass-val">63 g (0.063 kg)</span>
+                    </div>
+                    <input type="range" id="m-known-mass" min="20" max="250" step="1" value="63">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="m-vel">Given Launch Velocity (v<sub>0</sub>)</label>
+                      <span class="slider-val" id="m-vel-val">4.0 m/s</span>
+                    </div>
+                    <input type="range" id="m-vel" min="2.0" max="10.0" step="0.1" value="4.0">
+                  </div>
+
+                  <div class="slider-field">
+                    <div class="slider-header">
+                      <label for="m-caliper">Height Caliper (drag on canvas or slide)</label>
+                      <span class="slider-val" id="m-caliper-val">0.000 m (0.0 cm)</span>
+                    </div>
+                    <input type="range" id="m-caliper" min="0" max="0.60" step="0.001" value="0">
+                  </div>
+                </div>
+
+                <div class="toggle-group">
+                  <label class="toggle-line" for="m-pause-peak">
+                    <input type="checkbox" id="m-pause-peak" checked>
+                    <span>Pause at peak height for measurement</span>
+                  </label>
+                </div>
+
+                <div class="button-row">
+                  <button type="button" id="m-fire-btn" class="amber">▶ Fire Ball</button>
+                  <button type="button" id="m-reset-btn" class="ghost">Reset</button>
+                </div>
+                <div class="button-row">
+                  <button type="button" id="m-record-btn" class="primary">Record Measurement</button>
+                </div>
+
+                <p class="status" id="m-status" aria-live="polite">
+                  Sample A loaded. Press <strong>Fire Ball</strong>, then align the amber caliper line with the peak center of mass.
+                </p>
+              </section>
+
+              <!-- Canvas + Answer Checker Column -->
+              <section class="panel wide" aria-labelledby="m-stage-heading">
+                <div class="panel-head">
+                  <h2 id="m-stage-heading">Measurement Stage</h2>
+                  <span class="phase-pill" id="m-phase-badge">Ready</span>
+                </div>
+
+                <div class="canvas-wrap">
+                  <canvas id="m-canvas" class="sim-canvas interactive-canvas" width="760" height="400" role="img"
+                    aria-label="Ballistic pendulum measurement stage with a vertical centimeter ruler and draggable height caliper.">
+                  </canvas>
+                </div>
+
+                <dl class="metrics-grid" aria-live="polite">
+                  <div class="metric-card">
+                    <dt>Given Velocity (v₀)</dt>
+                    <dd id="m-out-v0">4.0 m/s</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt id="m-out-known-dt">Known Mass (m<sub>b</sub>)</dt>
+                    <dd id="m-out-known">63 g</dd>
+                  </div>
+                  <div class="metric-card highlight-card">
+                    <dt>Caliper Height (h)</dt>
+                    <dd id="m-out-caliper">0.000 m (0.0 cm)</dd>
+                  </div>
+                  <div class="metric-card">
+                    <dt>Implied v′ = √(2gh)</dt>
+                    <dd id="m-out-vprime">0.00 m/s</dd>
+                  </div>
+                </dl>
+
+                <!-- Student Answer Checker -->
+                <div class="callout" id="m-check-box">
+                  <h3>Calculate &amp; Check the Unknown Mass</h3>
+                  <div class="check-row">
+                    <div class="check-input-wrap">
+                      <label for="m-guess-input" id="m-guess-label">Your Calculated Catcher Mass (g):</label>
+                      <input type="number" id="m-guess-input" step="0.1" min="1" placeholder="Enter mass in grams">
+                    </div>
+                    <button type="button" id="m-check-btn" class="amber">Check Answer</button>
+                    <button type="button" id="m-reveal-btn" class="ghost">Reveal Mass</button>
+                  </div>
+                  <p class="check-feedback" id="m-feedback" aria-live="polite">
+                    Measure h at the peak, calculate v′ = √(2gh), then use momentum conservation to find the unknown mass.
+                  </p>
+                </div>
+              </section>
+
+              <!-- Method & Recorded Measurements -->
+              <section class="panel full" aria-labelledby="m-data-heading">
+                <div class="panel-head">
+                  <h2 id="m-data-heading">Recorded Measurements &amp; Method</h2>
+                </div>
+
+                <div class="sub-grid">
+                  <div>
+                    <h3>Measurement Log</h3>
+                    <div class="table-wrap">
+                      <table>
+                        <caption>Recorded mystery mass measurements</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Sample</th>
+                            <th scope="col">v₀ (m/s)</th>
+                            <th scope="col">Measured h (m)</th>
+                            <th scope="col">v′ = √(2gh)</th>
+                            <th scope="col">Mass Ratio (m<sub>c</sub>/m<sub>b</sub>)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="m-trials-body">
+                          <tr class="empty-row"><td colspan="6">No measurements recorded yet. Fire a shot, align the caliper, and click <strong>Record Measurement</strong>.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="button-row compact">
+                      <button type="button" id="m-clear-trials" class="ghost">Clear Log</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3>How to Solve from Measured Height</h3>
+                    <div class="discovery-list">
+                      <details open>
+                        <summary>Step 1: Find post-collision speed v′ from h</summary>
+                        <p>
+                          From energy conservation during the swing:
+                          <strong>v′ = √(2gh)</strong>.
+                        </p>
+                      </details>
+                      <details>
+                        <summary>Step 2: Solve for the unknown mass using momentum</summary>
+                        <p>
+                          From <strong>m<sub>b</sub> v₀ = (m<sub>b</sub> + m<sub>c</sub>) v′</strong>:<br>
+                          • Unknown catcher: <strong>m<sub>c</sub> = m<sub>b</sub> (v₀ / v′ − 1)</strong><br>
+                          • Unknown ball: <strong>m<sub>b</sub> = m<sub>c</sub> · v′ / (v₀ − v′)</strong>
                         </p>
                       </details>
                     </div>

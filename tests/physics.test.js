@@ -5,6 +5,8 @@ const {
   stepPendulumRK4,
   solveRampCollisionSlide,
   stepRampRK4,
+  solveUnknownCatcherMass,
+  solveUnknownBallMass,
 } = require('../src/js/physics.js');
 
 test('Ballistic Pendulum: default classroom problem (63 g at 4 m/s into 116 g catcher)', () => {
@@ -121,4 +123,30 @@ test('Physics validators reject non-positive masses or lengths', () => {
       mu: 0,
     })
   );
+});
+
+test('Inverse Ballistic Pendulum: recover unknown catcher mass and ball mass from measured height', () => {
+  const forward = solveBallisticPendulum({
+    ballMassKg: 0.063,
+    catcherMassKg: 0.116,
+    initialVelocity: 4.0,
+    armLength: 1.0,
+    g: 9.8,
+  });
+
+  const invCatcher = solveUnknownCatcherMass({
+    ballMassKg: 0.063,
+    initialVelocity: 4.0,
+    measuredHeight: forward.maxHeight,
+    g: 9.8,
+  });
+  assert.ok(Math.abs(invCatcher.catcherMassKg - 0.116) < 1e-9);
+
+  const invBall = solveUnknownBallMass({
+    catcherMassKg: 0.116,
+    initialVelocity: 4.0,
+    measuredHeight: forward.maxHeight,
+    g: 9.8,
+  });
+  assert.ok(Math.abs(invBall.ballMassKg - 0.063) < 1e-9);
 });

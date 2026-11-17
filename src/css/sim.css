@@ -536,6 +536,73 @@ button.ghost:hover {
   aspect-ratio: 760 / 400;
 }
 
+.interactive-canvas {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+}
+
+.field-group label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.field-group select,
+.check-input-wrap input[type="number"] {
+  min-block-size: 38px;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+  margin-bottom: 0.55rem;
+}
+
+.check-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 200px;
+}
+
+.check-input-wrap label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.check-feedback {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.check-feedback.ok {
+  color: var(--teal-dark);
+  font-weight: 600;
+}
+
+.check-feedback.warn {
+  color: var(--amber-dark);
+  font-weight: 600;
+}
+
 /* Metrics Grid */
 .metrics-grid {
   display: grid;

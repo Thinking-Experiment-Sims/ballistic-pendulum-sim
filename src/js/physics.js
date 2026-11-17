@@ -209,11 +209,69 @@
     };
   }
 
+  /**
+   * Inverse Ballistic Pendulum: given known ballMassKg, initialVelocity, and measured maxHeight,
+   * solve for post-collision speed v' and unknown catcherMassKg.
+   */
+  function solveUnknownCatcherMass({
+    ballMassKg,
+    initialVelocity,
+    measuredHeight,
+    g = DEFAULT_G,
+  }) {
+    if (ballMassKg <= 0 || initialVelocity <= 0 || g <= 0) {
+      throw new Error('ballMassKg, initialVelocity, and g must be positive.');
+    }
+    if (measuredHeight <= 0) {
+      throw new Error('measuredHeight must be positive.');
+    }
+    const vPrime = Math.sqrt(2 * g * measuredHeight);
+    if (vPrime >= initialVelocity) {
+      throw new Error('Measured height implies v\' >= v0, which is unphysical for a passive collision.');
+    }
+    const catcherMassKg = ballMassKg * (initialVelocity / vPrime - 1);
+    return {
+      vPrime,
+      catcherMassKg,
+      massRatio: catcherMassKg / ballMassKg,
+    };
+  }
+
+  /**
+   * Inverse Ballistic Pendulum: given known catcherMassKg, initialVelocity, and measured maxHeight,
+   * solve for post-collision speed v' and unknown ballMassKg.
+   */
+  function solveUnknownBallMass({
+    catcherMassKg,
+    initialVelocity,
+    measuredHeight,
+    g = DEFAULT_G,
+  }) {
+    if (catcherMassKg <= 0 || initialVelocity <= 0 || g <= 0) {
+      throw new Error('catcherMassKg, initialVelocity, and g must be positive.');
+    }
+    if (measuredHeight <= 0) {
+      throw new Error('measuredHeight must be positive.');
+    }
+    const vPrime = Math.sqrt(2 * g * measuredHeight);
+    if (vPrime >= initialVelocity) {
+      throw new Error('Measured height implies v\' >= v0, which is unphysical for a passive collision.');
+    }
+    const ballMassKg = catcherMassKg * (vPrime / (initialVelocity - vPrime));
+    return {
+      vPrime,
+      ballMassKg,
+      massRatio: catcherMassKg / ballMassKg,
+    };
+  }
+
   return {
     DEFAULT_G,
     solveBallisticPendulum,
     stepPendulumRK4,
     solveRampCollisionSlide,
     stepRampRK4,
+    solveUnknownCatcherMass,
+    solveUnknownBallMass,
   };
 });

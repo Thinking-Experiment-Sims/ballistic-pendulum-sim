@@ -47,8 +47,10 @@
     // Re-render active canvas cleanly on tab switch
     if (selectedTab.id === 'tab-pendulum') {
       drawPendulumScene();
-    } else {
+    } else if (selectedTab.id === 'tab-ramp') {
       drawRampScene();
+    } else if (selectedTab.id === 'tab-mystery') {
+      drawMysteryScene();
     }
   }
 
@@ -1151,9 +1153,568 @@
     });
   });
 
+  // =========================================================================
+  // 5. TAB 3: MYSTERY MASS LAB (MEASURE HEIGHT, FIND MASSES)
+  // =========================================================================
+  const MYSTERY_SAMPLES = {
+    A: { catcherG: 116, ballG: 63 },
+    B: { catcherG: 185, ballG: 80 },
+    C: { catcherG: 92, ballG: 48 },
+  };
+
+  const mEl = {
+    mode: document.getElementById('m-mode'),
+    knownMass: document.getElementById('m-known-mass'),
+    knownMassLabel: document.getElementById('m-known-mass-label'),
+    knownMassVal: document.getElementById('m-known-mass-val'),
+    vel: document.getElementById('m-vel'),
+    velVal: document.getElementById('m-vel-val'),
+    caliper: document.getElementById('m-caliper'),
+    caliperVal: document.getElementById('m-caliper-val'),
+    pausePeak: document.getElementById('m-pause-peak'),
+    fireBtn: document.getElementById('m-fire-btn'),
+    resetBtn: document.getElementById('m-reset-btn'),
+    recordBtn: document.getElementById('m-record-btn'),
+    randomBtn: document.getElementById('m-random-btn'),
+    status: document.getElementById('m-status'),
+    phaseBadge: document.getElementById('m-phase-badge'),
+    canvas: document.getElementById('m-canvas'),
+    outV0: document.getElementById('m-out-v0'),
+    outKnownDt: document.getElementById('m-out-known-dt'),
+    outKnown: document.getElementById('m-out-known'),
+    outCaliper: document.getElementById('m-out-caliper'),
+    outVprime: document.getElementById('m-out-vprime'),
+    guessLabel: document.getElementById('m-guess-label'),
+    guessInput: document.getElementById('m-guess-input'),
+    checkBtn: document.getElementById('m-check-btn'),
+    revealBtn: document.getElementById('m-reveal-btn'),
+    feedback: document.getElementById('m-feedback'),
+    trialsBody: document.getElementById('m-trials-body'),
+    clearTrialsBtn: document.getElementById('m-clear-trials'),
+  };
+
+  const M_ARM_LENGTH = 1.0;
+
+  let mState = {
+    sampleName: 'Sample A',
+    secretMassG: 116,
+    revealed: false,
+    phase: 'ready', // 'ready' | 'approach' | 'swing' | 'peak-paused'
+    running: false,
+    ballX: -0.9,
+    theta: 0,
+    omega: 0,
+    impactFlash: 0,
+    peakReached: false,
+    peakTheta: null,
+    draggingCaliper: false,
+    trials: [],
+    rafId: null,
+    lastTs: null,
+  };
+
+  function getMysteryParams() {
+    const mode = mEl.mode.value; // 'catcher' | 'ball'
+    const knownG = parseFloat(mEl.knownMass.value);
+    const v0 = parseFloat(mEl.vel.value);
+    const ballMassG = mode === 'catcher' ? knownG : mState.secretMassG;
+    const catcherMassG = mode === 'catcher' ? mState.secretMassG : knownG;
+    return {
+      mode,
+      knownG,
+      ballMassG,
+      catcherMassG,
+      ballMassKg: ballMassG / 1000,
+      catcherMassKg: catcherMassG / 1000,
+      initialVelocity: v0,
+      armLength: M_ARM_LENGTH,
+    };
+  }
+
+  function updateMysteryUI() {
+    const mode = mEl.mode.value;
+    const knownG = parseFloat(mEl.knownMass.value);
+    const v0 = parseFloat(mEl.vel.value);
+    const calH = parseFloat(mEl.caliper.value);
+
+    const knownText = `${knownG} g (${(knownG / 1000).toFixed(3)} kg)`;
+    const v0Text = `${v0.toFixed(1)} m/s`;
+    const calText = `${calH.toFixed(3)} m (${(calH * 100).toFixed(1)} cm)`;
+
+    if (mode === 'catcher') {
+      mEl.knownMassLabel.innerHTML = 'Known Ball Mass (m<sub>b</sub>)';
+      mEl.outKnownDt.innerHTML = 'Known Mass (m<sub>b</sub>)';
+      mEl.guessLabel.textContent = 'Your Calculated Catcher Mass (g):';
+    } else {
+      mEl.knownMassLabel.innerHTML = 'Known Catcher Mass (m<sub>c</sub>)';
+      mEl.outKnownDt.innerHTML = 'Known Mass (m<sub>c</sub>)';
+      mEl.guessLabel.textContent = 'Your Calculated Ball Mass (g):';
+    }
+
+    mEl.knownMassVal.textContent = knownText;
+    mEl.velVal.textContent = v0Text;
+    mEl.caliperVal.textContent = calText;
+
+    syncSlider(mEl.knownMass, knownText);
+    syncSlider(mEl.vel, v0Text);
+    syncSlider(mEl.caliper, calText);
+
+    mEl.outV0.textContent = v0Text;
+    mEl.outKnown.textContent = `${knownG} g`;
+    mEl.outCaliper.textContent = calText;
+
+    const impliedVprime = Math.sqrt(2 * P.DEFAULT_G * calH);
+    mEl.outVprime.textContent = `${impliedVprime.toFixed(3)} m/s`;
+  }
+
+  function getMysteryGeometry() {
+    const pxPerMeter = 220;
+    const pivotX = 300;
+    const pivotY = 58;
+    const armPx = M_ARM_LENGTH * pxPerMeter;
+    const restBobY = pivotY + armPx;
+    return { pxPerMeter, pivotX, pivotY, armPx, restBobY };
+  }
+
+  function drawMysteryScene() {
+    const { ctx, w, h } = setupHiDPICanvas(mEl.canvas);
+    drawBlueprintGrid(ctx, w, h);
+
+    const params = getMysteryParams();
+    const { pxPerMeter, pivotX, pivotY, armPx, restBobY } = getMysteryGeometry();
+
+    // Ceiling beam
+    ctx.fillStyle = COLORS.tealDark;
+    ctx.fillRect(pivotX - 90, pivotY - 14, 180, 14);
+
+    // Reference y = 0 line
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = COLORS.border;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(40, restBobY);
+    ctx.lineTo(w - 30, restBobY);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.muted;
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('h = 0.00 m (rest center)', 44, restBobY + 16);
+    ctx.restore();
+
+    // Vertical Ruler on right side (from h = 0 up to 0.60 m)
+    const rulerX = w - 130;
+    const maxRulerH = 0.60;
+    const topRulerY = restBobY - maxRulerH * pxPerMeter;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.strokeStyle = COLORS.tealDark;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(rulerX, topRulerY - 10, 44, maxRulerH * pxPerMeter + 20);
+    ctx.strokeRect(rulerX, topRulerY - 10, 44, maxRulerH * pxPerMeter + 20);
+
+    ctx.fillStyle = COLORS.ink;
+    ctx.font = '600 10px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    for (let cm = 0; cm <= 60; cm += 2) {
+      const yTick = restBobY - (cm / 100) * pxPerMeter;
+      const isMajor = cm % 10 === 0;
+      const isMid = cm % 5 === 0;
+      const tickLen = isMajor ? 14 : isMid ? 9 : 5;
+      ctx.strokeStyle = isMajor ? COLORS.tealDark : COLORS.muted;
+      ctx.lineWidth = isMajor ? 1.5 : 1;
+      ctx.beginPath();
+      ctx.moveTo(rulerX, yTick);
+      ctx.lineTo(rulerX + tickLen, yTick);
+      ctx.stroke();
+      if (isMajor) {
+        ctx.fillText(`${cm} cm`, rulerX + 16, yTick + 3);
+      }
+    }
+
+    // Peak Ghost Marker if peak was reached
+    if (mState.peakTheta !== null) {
+      const ghostX = pivotX + armPx * Math.sin(mState.peakTheta);
+      const ghostY = pivotY + armPx * Math.cos(mState.peakTheta);
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = COLORS.teal;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ghostX, ghostY, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ghostX, ghostY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS.teal;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Bob position
+    const bobX = pivotX + armPx * Math.sin(mState.theta);
+    const bobY = pivotY + armPx * Math.cos(mState.theta);
+
+    // Pendulum arm & pivot
+    ctx.strokeStyle = COLORS.ink;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(bobX, bobY);
+    ctx.stroke();
+
+    ctx.fillStyle = COLORS.teal;
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Catcher block
+    ctx.save();
+    ctx.translate(bobX, bobY);
+    ctx.rotate(-mState.theta);
+    ctx.fillStyle = COLORS.teal;
+    ctx.strokeStyle = COLORS.tealDark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-24, -18, 48, 36, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    if (mState.phase !== 'ready' && mState.phase !== 'approach') {
+      ctx.fillStyle = COLORS.amber;
+      ctx.beginPath();
+      ctx.arc(-6, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Catcher label
+    ctx.fillStyle = COLORS.ink;
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    const catcherLabel =
+      params.mode === 'catcher' && !mState.revealed
+        ? 'm_c = ? g'
+        : `m_c = ${params.catcherMassG} g`;
+    ctx.fillText(catcherLabel, bobX, bobY + 34);
+
+    // Approaching ball
+    if (mState.phase === 'ready' || mState.phase === 'approach') {
+      const ballPxX = pivotX + mState.ballX * pxPerMeter;
+      const ballPxY = restBobY;
+
+      ctx.fillStyle = COLORS.muted;
+      ctx.fillRect(28, restBobY - 12, 34, 24);
+
+      ctx.fillStyle = COLORS.amber;
+      ctx.strokeStyle = COLORS.amberDark;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ballPxX, ballPxY, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = COLORS.ink;
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      const ballLabel =
+        params.mode === 'ball' && !mState.revealed
+          ? 'm_b = ? g'
+          : `m_b = ${params.ballMassG} g`;
+      ctx.fillText(ballLabel, ballPxX, ballPxY + 26);
+
+      const arrowLen = Math.min(75, Math.max(25, params.initialVelocity * 8));
+      drawArrow(ctx, ballPxX + 14, ballPxY, ballPxX + 14 + arrowLen, ballPxY, COLORS.amberDark, `v₀ = ${params.initialVelocity.toFixed(1)} m/s`);
+    }
+
+    // Impact flash
+    if (mState.impactFlash > 0) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(214, 123, 25, ${mState.impactFlash})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(bobX, bobY, 32 + (1 - mState.impactFlash) * 20, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Draggable Height Caliper Line
+    const calH = parseFloat(mEl.caliper.value);
+    const calY = restBobY - calH * pxPerMeter;
+
+    ctx.save();
+    ctx.strokeStyle = COLORS.amber;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pivotX - 40, calY);
+    ctx.lineTo(rulerX + 44, calY);
+    ctx.stroke();
+
+    // Caliper handle pill
+    ctx.fillStyle = COLORS.amber;
+    ctx.beginPath();
+    ctx.roundRect(rulerX + 48, calY - 12, 68, 24, 6);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${(calH * 100).toFixed(1)} cm`, rulerX + 82, calY + 4);
+    ctx.restore();
+
+    // Top-left sample badge
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.strokeStyle = COLORS.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(14, 14, 210, 52, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = COLORS.tealDark;
+    ctx.font = '700 12px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${mState.sampleName} · L = 1.00 m`, 24, 35);
+    ctx.fillStyle = COLORS.muted;
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.fillText('Drag amber line to measure h', 24, 54);
+  }
+
+  function stepMysteryAnimation(ts) {
+    if (!mState.running) return;
+    if (mState.lastTs === null) mState.lastTs = ts;
+    const dt = Math.min(0.033, (ts - mState.lastTs) / 1000);
+    mState.lastTs = ts;
+
+    const params = getMysteryParams();
+    const res = P.solveBallisticPendulum(params);
+
+    if (mState.impactFlash > 0) {
+      mState.impactFlash = Math.max(0, mState.impactFlash - dt * 3);
+    }
+
+    if (mState.phase === 'approach') {
+      mState.ballX += params.initialVelocity * dt;
+      if (mState.ballX >= 0) {
+        mState.ballX = 0;
+        mState.phase = 'swing';
+        mState.theta = 0;
+        mState.omega = res.postCollisionVelocity / M_ARM_LENGTH;
+        mState.impactFlash = 1;
+        mEl.phaseBadge.textContent = '2. Collision → 3. Swing';
+        mEl.status.textContent = 'Captured! Watch for the peak height...';
+      }
+    } else if (mState.phase === 'swing') {
+      const subSteps = 4;
+      const subDt = dt / subSteps;
+      for (let i = 0; i < subSteps; i++) {
+        const prevOmega = mState.omega;
+        const next = P.stepPendulumRK4(mState.theta, mState.omega, M_ARM_LENGTH, P.DEFAULT_G, subDt);
+        mState.theta = next.theta;
+        mState.omega = next.omega;
+
+        if (!mState.peakReached && prevOmega > 0 && mState.omega <= 0) {
+          mState.peakReached = true;
+          mState.peakTheta = mState.theta;
+          if (mEl.pausePeak.checked) {
+            mState.phase = 'peak-paused';
+            mState.running = false;
+            mState.omega = 0;
+            mEl.phaseBadge.textContent = 'Paused at Peak — Measure h';
+            mEl.status.innerHTML = 'Paused at peak! Drag the <strong>amber caliper line</strong> to the center of the catcher to measure <strong>h</strong>.';
+            break;
+          }
+        }
+      }
+    }
+
+    drawMysteryScene();
+    if (mState.running) {
+      mState.rafId = requestAnimationFrame(stepMysteryAnimation);
+    }
+  }
+
+  function resetMystery() {
+    if (mState.rafId) cancelAnimationFrame(mState.rafId);
+    mState.phase = 'ready';
+    mState.running = false;
+    mState.ballX = -0.9;
+    mState.theta = 0;
+    mState.omega = 0;
+    mState.impactFlash = 0;
+    mState.peakReached = false;
+    mState.peakTheta = null;
+    mState.lastTs = null;
+    mEl.phaseBadge.textContent = 'Ready';
+    mEl.status.innerHTML = `${mState.sampleName} ready. Press <strong>Fire Ball</strong>, then measure peak height <strong>h</strong>.`;
+    updateMysteryUI();
+    drawMysteryScene();
+  }
+
+  function fireMystery() {
+    resetMystery();
+    mState.phase = 'approach';
+    mState.running = true;
+    mEl.phaseBadge.textContent = '1. Ball Approaching';
+    mEl.status.textContent = 'Ball fired at given velocity v₀...';
+    mState.rafId = requestAnimationFrame(stepMysteryAnimation);
+  }
+
+  // Pointer dragging for the height caliper on #m-canvas
+  function updateCaliperFromPointer(e) {
+    const rect = mEl.canvas.getBoundingClientRect();
+    const scaleY = 400 / rect.height;
+    const canvasY = (e.clientY - rect.top) * scaleY;
+    const { pxPerMeter, restBobY } = getMysteryGeometry();
+    const hMeters = Math.max(0, Math.min(0.60, (restBobY - canvasY) / pxPerMeter));
+    mEl.caliper.value = hMeters.toFixed(3);
+    updateMysteryUI();
+    drawMysteryScene();
+  }
+
+  mEl.canvas.addEventListener('pointerdown', (e) => {
+    mState.draggingCaliper = true;
+    mEl.canvas.setPointerCapture(e.pointerId);
+    updateCaliperFromPointer(e);
+  });
+
+  mEl.canvas.addEventListener('pointermove', (e) => {
+    if (!mState.draggingCaliper) return;
+    updateCaliperFromPointer(e);
+  });
+
+  mEl.canvas.addEventListener('pointerup', (e) => {
+    mState.draggingCaliper = false;
+    if (mEl.canvas.hasPointerCapture(e.pointerId)) {
+      mEl.canvas.releasePointerCapture(e.pointerId);
+    }
+  });
+
+  [mEl.knownMass, mEl.vel].forEach((input) => {
+    input.addEventListener('input', () => {
+      resetMystery();
+    });
+  });
+
+  mEl.caliper.addEventListener('input', () => {
+    updateMysteryUI();
+    drawMysteryScene();
+  });
+
+  mEl.mode.addEventListener('change', () => {
+    mState.revealed = false;
+    mEl.guessInput.value = '';
+    mEl.feedback.className = 'check-feedback';
+    mEl.feedback.textContent = 'Measure h at the peak, calculate v′ = √(2gh), then use momentum conservation to find the unknown mass.';
+    if (mEl.mode.value === 'catcher') {
+      mEl.knownMass.value = 63;
+      mState.secretMassG = MYSTERY_SAMPLES.A.catcherG;
+    } else {
+      mEl.knownMass.value = 116;
+      mState.secretMassG = MYSTERY_SAMPLES.A.ballG;
+    }
+    mState.sampleName = 'Sample A';
+    resetMystery();
+  });
+
+  document.querySelectorAll('[data-m-sample]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-m-sample');
+      const sample = MYSTERY_SAMPLES[key];
+      mState.sampleName = `Sample ${key}`;
+      mState.revealed = false;
+      mEl.guessInput.value = '';
+      mEl.feedback.className = 'check-feedback';
+      mEl.feedback.textContent = `${mState.sampleName} loaded. Fire the ball and measure h!`;
+      if (mEl.mode.value === 'catcher') {
+        mEl.knownMass.value = sample.ballG;
+        mState.secretMassG = sample.catcherG;
+      } else {
+        mEl.knownMass.value = sample.catcherG;
+        mState.secretMassG = sample.ballG;
+      }
+      resetMystery();
+    });
+  });
+
+  mEl.randomBtn.addEventListener('click', () => {
+    mState.sampleName = 'Random Mystery';
+    mState.revealed = false;
+    mEl.guessInput.value = '';
+    mEl.feedback.className = 'check-feedback';
+    mEl.feedback.textContent = 'New random mystery mass generated! Fire the ball and measure h.';
+    if (mEl.mode.value === 'catcher') {
+      mState.secretMassG = Math.floor(65 + Math.random() * 180);
+    } else {
+      mState.secretMassG = Math.floor(30 + Math.random() * 90);
+    }
+    resetMystery();
+  });
+
+  mEl.fireBtn.addEventListener('click', fireMystery);
+  mEl.resetBtn.addEventListener('click', resetMystery);
+
+  mEl.checkBtn.addEventListener('click', () => {
+    const guess = parseFloat(mEl.guessInput.value);
+    if (!Number.isFinite(guess) || guess <= 0) {
+      mEl.feedback.className = 'check-feedback warn';
+      mEl.feedback.textContent = 'Please enter a positive mass in grams.';
+      return;
+    }
+    const actual = mState.secretMassG;
+    const pctError = Math.abs(guess - actual) / actual;
+    if (pctError <= 0.03) {
+      mState.revealed = true;
+      mEl.feedback.className = 'check-feedback ok';
+      mEl.feedback.textContent = `Correct! Your calculated mass (${guess.toFixed(1)} g) matches the actual mass (${actual} g) within ±3%.`;
+      drawMysteryScene();
+    } else {
+      mEl.feedback.className = 'check-feedback warn';
+      mEl.feedback.textContent = `Not quite (${guess.toFixed(1)} g). Double-check: (1) align the caliper with the peak center, (2) v′ = √(2gh), and (3) m_b v₀ = (m_b + m_c) v′.`;
+    }
+  });
+
+  mEl.revealBtn.addEventListener('click', () => {
+    mState.revealed = true;
+    const label = mEl.mode.value === 'catcher' ? 'catcher mass m_c' : 'ball mass m_b';
+    mEl.feedback.className = 'check-feedback ok';
+    mEl.feedback.textContent = `Revealed: The ${mState.sampleName} ${label} is ${mState.secretMassG} g.`;
+    drawMysteryScene();
+  });
+
+  mEl.recordBtn.addEventListener('click', () => {
+    const v0 = parseFloat(mEl.vel.value);
+    const calH = parseFloat(mEl.caliper.value);
+    const vPrime = Math.sqrt(2 * P.DEFAULT_G * calH);
+    const ratio = vPrime > 0 && vPrime < v0 ? (v0 / vPrime - 1).toFixed(2) : '—';
+
+    mState.trials.push({
+      n: mState.trials.length + 1,
+      sample: mState.sampleName,
+      v0: v0.toFixed(1),
+      h: calH.toFixed(3),
+      vp: vPrime.toFixed(2),
+      ratio,
+    });
+    mEl.trialsBody.innerHTML = mState.trials
+      .map(
+        (t) => `<tr>
+          <td>${t.n}</td><td>${t.sample}</td><td>${t.v0}</td>
+          <td><strong>${t.h}</strong></td><td>${t.vp}</td><td>${t.ratio}</td>
+        </tr>`
+      )
+      .join('');
+  });
+
+  mEl.clearTrialsBtn.addEventListener('click', () => {
+    mState.trials = [];
+    mEl.trialsBody.innerHTML =
+      '<tr class="empty-row"><td colspan="6">No measurements recorded yet. Fire a shot, align the caliper, and click <strong>Record Measurement</strong>.</td></tr>';
+  });
+
   // Initial render
   updatePendulumUI();
   drawPendulumScene();
   updateRampUI();
   drawRampScene();
+  updateMysteryUI();
+  drawMysteryScene();
 })();
