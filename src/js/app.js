@@ -147,7 +147,8 @@
     if (label) {
       ctx.font = '600 12px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(label, (x1 + x2) / 2, y1 - 8);
+      const labelX = (x1 + x2) / 2 + (dx > 0 ? 6 : dx < 0 ? -6 : 0);
+      ctx.fillText(label, labelX, y1 - 11);
     }
     ctx.restore();
   }
@@ -336,8 +337,8 @@
     ctx.stroke();
     ctx.fillStyle = COLORS.muted;
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('y = 0 (rest level)', 44, restBobY + 16);
+    ctx.textAlign = 'right';
+    ctx.fillText('y = 0 (rest level)', w - 34, restBobY + 18);
     ctx.restore();
 
     // Dashed arc of possible swing
@@ -856,13 +857,16 @@
       ctx.stroke();
     }
 
-    // Labels for frictionless ramp vs friction surface
+    // Labels for frictionless ramp vs friction surface (guaranteed non-overlapping)
     ctx.fillStyle = COLORS.tealDark;
     ctx.font = '600 11px Inter, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`Frictionless Ramp (R = ${params.radius.toFixed(2)} m)`, 44, floorY + 24);
+    const rampLabel = `Frictionless Ramp (R = ${params.radius.toFixed(2)} m)`;
+    ctx.fillText(rampLabel, 38, floorY + 24);
+    const rampLabelWidth = ctx.measureText(rampLabel).width;
+    const roughLabelX = Math.max(rampBottomX + 14, 38 + rampLabelWidth + 24);
     ctx.fillStyle = COLORS.amberDark;
-    ctx.fillText(`Rough Surface (μ = ${params.mu.toFixed(2)})`, rampBottomX + 12, floorY + 24);
+    ctx.fillText(`Rough Surface (μ = ${params.mu.toFixed(2)})`, roughLabelX, floorY + 24);
 
     // Radius / Height indicator on ramp
     ctx.save();
@@ -1269,7 +1273,7 @@
 
   function getMysteryGeometry() {
     const pxPerMeter = 220;
-    const pivotX = 300;
+    const pivotX = 335;
     const pivotY = 58;
     const armPx = M_ARM_LENGTH * pxPerMeter;
     const restBobY = pivotY + armPx;
@@ -1298,20 +1302,21 @@
     ctx.stroke();
     ctx.fillStyle = COLORS.muted;
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('h = 0.00 m (rest center)', 44, restBobY + 16);
+    ctx.textAlign = 'center';
+    ctx.fillText('h = 0.00 m (rest center)', pivotX + 125, restBobY + 18);
     ctx.restore();
 
     // Vertical Ruler on right side (from h = 0 up to 0.60 m)
-    const rulerX = w - 130;
+    const rulerX = w - 142;
+    const rulerW = 54;
     const maxRulerH = 0.60;
     const topRulerY = restBobY - maxRulerH * pxPerMeter;
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.strokeStyle = COLORS.tealDark;
     ctx.lineWidth = 1.5;
-    ctx.fillRect(rulerX, topRulerY - 10, 44, maxRulerH * pxPerMeter + 20);
-    ctx.strokeRect(rulerX, topRulerY - 10, 44, maxRulerH * pxPerMeter + 20);
+    ctx.fillRect(rulerX, topRulerY - 10, rulerW, maxRulerH * pxPerMeter + 20);
+    ctx.strokeRect(rulerX, topRulerY - 10, rulerW, maxRulerH * pxPerMeter + 20);
 
     ctx.fillStyle = COLORS.ink;
     ctx.font = '600 10px Inter, sans-serif';
@@ -1446,18 +1451,18 @@
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(pivotX - 40, calY);
-    ctx.lineTo(rulerX + 44, calY);
+    ctx.lineTo(rulerX + rulerW, calY);
     ctx.stroke();
 
     // Caliper handle pill
     ctx.fillStyle = COLORS.amber;
     ctx.beginPath();
-    ctx.roundRect(rulerX + 48, calY - 12, 68, 24, 6);
+    ctx.roundRect(rulerX + rulerW + 6, calY - 12, 68, 24, 6);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 11px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${(calH * 100).toFixed(1)} cm`, rulerX + 82, calY + 4);
+    ctx.fillText(`${(calH * 100).toFixed(1)} cm`, rulerX + rulerW + 40, calY + 4);
     ctx.restore();
 
     // Top-left sample badge
