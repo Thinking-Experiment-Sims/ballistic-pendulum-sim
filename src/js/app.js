@@ -337,8 +337,8 @@
     ctx.stroke();
     ctx.fillStyle = COLORS.muted;
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText('y = 0 (rest level)', w - 34, restBobY + 18);
+    ctx.textAlign = 'left';
+    ctx.fillText('y = 0 (rest level)', 18, restBobY - 24);
     ctx.restore();
 
     // Dashed arc of possible swing
@@ -1302,8 +1302,8 @@
     ctx.stroke();
     ctx.fillStyle = COLORS.muted;
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('h = 0.00 m (rest center)', pivotX + 125, restBobY + 18);
+    ctx.textAlign = 'left';
+    ctx.fillText('h = 0.00 m (rest center)', 18, restBobY - 24);
     ctx.restore();
 
     // Vertical Ruler on right side (from h = 0 up to 0.60 m)
