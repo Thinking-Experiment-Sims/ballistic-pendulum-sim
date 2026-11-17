@@ -1,6 +1,6 @@
 # Physics Reference — Ballistic Pendulum & Ramp Collision Lab
 
-This simulation models two classic two-stage and three-stage AP Physics 1 mechanics problems that combine **conservation of linear momentum** (during a perfectly inelastic collision) with **conservation of mechanical energy** and the **work-energy theorem**.
+This simulation models two classic two-stage and three-stage mechanics problems that combine **conservation of linear momentum** (during a perfectly inelastic collision) with **conservation of mechanical energy** and the **work-energy theorem**.
 
 ---
 
