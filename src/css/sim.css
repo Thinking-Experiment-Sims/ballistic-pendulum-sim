@@ -92,6 +92,50 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gravity-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+}
+
+.gravity-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 0.2rem;
+}
+
+.g-btn {
+  min-block-size: 28px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.g-btn:hover {
+  background: var(--teal-soft);
+}
+
+.g-btn[aria-pressed="true"] {
+  background: var(--teal);
+  color: #ffffff;
+}
+
 .brand-badge {
   display: inline-flex;
   align-items: center;

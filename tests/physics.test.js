@@ -150,3 +150,26 @@ test('Inverse Ballistic Pendulum: recover unknown catcher mass and ball mass fro
   });
   assert.ok(Math.abs(invBall.ballMassKg - 0.063) < 1e-9);
 });
+
+test('Classroom g = 10 m/s^2 support across pendulum, ramp, and inverse mode', () => {
+  const pend = solveBallisticPendulum({
+    ballMassKg: 0.063,
+    catcherMassKg: 0.116,
+    initialVelocity: 4.0,
+    armLength: 1.0,
+    g: 10,
+  });
+  const expectedH = Math.pow(0.252 / 0.179, 2) / 20;
+  assert.ok(Math.abs(pend.maxHeight - expectedH) < 1e-9);
+
+  const ramp = solveRampCollisionSlide({
+    m1Kg: 12,
+    m2Kg: 8,
+    radius: 1.0,
+    mu: 0.2,
+    g: 10,
+  });
+  assert.ok(Math.abs(ramp.speedBeforeCollision - Math.sqrt(20)) < 1e-9);
+  assert.ok(Math.abs(ramp.stoppingDistance - 1.8) < 1e-9);
+  assert.ok(Math.abs(ramp.workByFriction - (-72.0)) < 1e-9);
+});

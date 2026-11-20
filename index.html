@@ -22,7 +22,14 @@
         <a class="brand-badge" href="https://thinking-experiment-sims.github.io/interactive-physics/">
           ← The Thinking Experiment Hub
         </a>
-        <span class="lab-badge">Momentum &amp; Energy Lab</span>
+        <div class="hero-badges">
+          <div class="gravity-toggle" role="group" aria-label="Gravitational acceleration">
+            <span class="gravity-label">Gravity (g):</span>
+            <button type="button" class="g-btn" data-g="9.8" aria-pressed="true">9.8 m/s²</button>
+            <button type="button" class="g-btn" data-g="10" aria-pressed="false">10 m/s²</button>
+          </div>
+          <span class="lab-badge">Momentum &amp; Energy Lab</span>
+        </div>
       </div>
       <p class="kicker">Mechanics · Conservation Laws &amp; Inelastic Collisions</p>
       <h1 id="main-content" tabindex="-1">Ballistic Pendulum &amp; Ramp Collision Lab</h1>
@@ -55,7 +62,7 @@
               <section class="panel narrow" aria-labelledby="p-controls-heading">
                 <div class="panel-head">
                   <h2 id="p-controls-heading">Parameters</h2>
-                  <span class="info-line">g = 9.8 m/s²</span>
+                  <span class="info-line g-badge">g = 9.8 m/s²</span>
                 </div>
                 <p class="hint">Sign convention: +x to the right, +y upward. Reference y = 0 at catcher rest height.</p>
 
@@ -272,7 +279,7 @@
               <section class="panel narrow" aria-labelledby="r-controls-heading">
                 <div class="panel-head">
                   <h2 id="r-controls-heading">Parameters</h2>
-                  <span class="info-line">g = 9.8 m/s²</span>
+                  <span class="info-line g-badge">g = 9.8 m/s²</span>
                 </div>
                 <p class="hint">Sign convention: +x to the right along flat surface, y = 0 at bottom of ramp.</p>
 
@@ -490,7 +497,7 @@
               <section class="panel narrow" aria-labelledby="m-controls-heading">
                 <div class="panel-head">
                   <h2 id="m-controls-heading">Investigation Setup</h2>
-                  <span class="info-line">g = 9.8 m/s²</span>
+                  <span class="info-line g-badge">g = 9.8 m/s²</span>
                 </div>
                 <p class="hint">Fire the ball, measure the peak rise height h with the caliper, and solve for the unknown mass.</p>
 

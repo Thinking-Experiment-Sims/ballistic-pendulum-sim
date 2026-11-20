@@ -2,6 +2,33 @@
   'use strict';
 
   const P = window.BallisticPhysics;
+  let currentG = P.DEFAULT_G;
+
+  // Gravity toggle (9.8 vs 10 m/s²)
+  const gButtons = Array.from(document.querySelectorAll('.g-btn'));
+  const gBadges = Array.from(document.querySelectorAll('.g-badge'));
+
+  function setGravity(nextG) {
+    currentG = nextG;
+    gButtons.forEach((btn) => {
+      const isSelected = parseFloat(btn.getAttribute('data-g')) === currentG;
+      btn.setAttribute('aria-pressed', String(isSelected));
+    });
+    const labelText = `g = ${currentG === 10 ? '10' : '9.8'} m/s²`;
+    gBadges.forEach((badge) => {
+      badge.textContent = labelText;
+    });
+    resetPendulum();
+    resetRamp();
+    resetMystery();
+  }
+
+  gButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const val = parseFloat(btn.getAttribute('data-g'));
+      if (val !== currentG) setGravity(val);
+    });
+  });
 
   // Color tokens matching sim.css (light mode only)
   const COLORS = {
@@ -216,6 +243,7 @@
       catcherMassKg: catcherMassG / 1000,
       initialVelocity,
       armLength,
+      g: currentG,
     };
   }
 
@@ -274,7 +302,7 @@
         <h4>Stage 2: Upward Swing (Mechanical Energy Conserved)</h4>
         <p>After capture, gravity is the only work-doing force:</p>
         <span class="eq">½ (m<sub>b</sub> + m<sub>c</sub>) v′² = (m<sub>b</sub> + m<sub>c</sub>) g h</span>
-        <span class="eq">h = v′² / (2g) = ${res.postCollisionVelocity.toFixed(3)}² / (2 × 9.8) = <strong>${res.maxHeight.toFixed(4)} m</strong> (${res.maxHeightCm.toFixed(2)} cm)</span>
+        <span class="eq">h = v′² / (2g) = ${res.postCollisionVelocity.toFixed(3)}² / (2 × ${currentG}) = <strong>${res.maxHeight.toFixed(4)} m</strong> (${res.maxHeightCm.toFixed(2)} cm)</span>
       </div>
       <div class="step-card">
         <h4>Energy Check (Why KE<sub>i</sub> ≠ PE<sub>f</sub>)</h4>
@@ -295,7 +323,7 @@
     } else {
       const hCurrent = params.armLength * (1 - Math.cos(pState.theta));
       const vCurrent = pState.omega * params.armLength;
-      pe = res.totalMass * P.DEFAULT_G * hCurrent;
+      pe = res.totalMass * currentG * hCurrent;
       ke = 0.5 * res.totalMass * vCurrent * vCurrent;
       th = res.collisionEnergyLoss;
     }
@@ -511,7 +539,7 @@
       const subDt = dt / subSteps;
       for (let i = 0; i < subSteps; i++) {
         const prevOmega = pState.omega;
-        const next = P.stepPendulumRK4(pState.theta, pState.omega, params.armLength, P.DEFAULT_G, subDt);
+        const next = P.stepPendulumRK4(pState.theta, pState.omega, params.armLength, currentG, subDt);
         pState.theta = next.theta;
         pState.omega = next.omega;
 
@@ -700,6 +728,7 @@
       radius: parseFloat(rEl.radius.value),
       m2Kg: parseFloat(rEl.m2.value),
       mu: parseFloat(rEl.mu.value),
+      g: currentG,
     };
   }
 
@@ -748,7 +777,7 @@
         <h4>Stage 1: Frictionless Ramp (Energy Conserved)</h4>
         <p>m₁ drops height R = ${params.radius.toFixed(2)} m from rest:</p>
         <span class="eq">m₁ g R = ½ m₁ v₁² ⇒ v₁ = √(2gR)</span>
-        <span class="eq">v₁ = √(2 × 9.8 × ${params.radius.toFixed(2)}) = <strong>${res.speedBeforeCollision.toFixed(3)} m/s</strong></span>
+        <span class="eq">v₁ = √(2 × ${currentG} × ${params.radius.toFixed(2)}) = <strong>${res.speedBeforeCollision.toFixed(3)} m/s</strong></span>
       </div>
       <div class="step-card">
         <h4>Stage 2: Inelastic Collision (Momentum Conserved)</h4>
@@ -778,7 +807,7 @@
     } else if (rState.phase === 'ramp') {
       const hCurrent = params.radius * (1 - Math.sin(rState.phi));
       const vCurrent = rState.omega * params.radius;
-      pe = params.m1Kg * P.DEFAULT_G * hCurrent;
+      pe = params.m1Kg * currentG * hCurrent;
       ke = 0.5 * params.m1Kg * vCurrent * vCurrent;
     } else {
       ke = 0.5 * res.totalMass * rState.slideV * rState.slideV;
@@ -1017,7 +1046,7 @@
       const subSteps = 4;
       const subDt = dt / subSteps;
       for (let i = 0; i < subSteps; i++) {
-        const next = P.stepRampRK4(rState.phi, rState.omega, params.radius, P.DEFAULT_G, subDt);
+        const next = P.stepRampRK4(rState.phi, rState.omega, params.radius, currentG, subDt);
         rState.phi = next.phi;
         rState.omega = next.omega;
         if (rState.phi >= Math.PI / 2) {
@@ -1232,6 +1261,7 @@
       catcherMassKg: catcherMassG / 1000,
       initialVelocity: v0,
       armLength: M_ARM_LENGTH,
+      g: currentG,
     };
   }
 
@@ -1267,7 +1297,7 @@
     mEl.outKnown.textContent = `${knownG} g`;
     mEl.outCaliper.textContent = calText;
 
-    const impliedVprime = Math.sqrt(2 * P.DEFAULT_G * calH);
+    const impliedVprime = Math.sqrt(2 * currentG * calH);
     mEl.outVprime.textContent = `${impliedVprime.toFixed(3)} m/s`;
   }
 
@@ -1512,7 +1542,7 @@
       const subDt = dt / subSteps;
       for (let i = 0; i < subSteps; i++) {
         const prevOmega = mState.omega;
-        const next = P.stepPendulumRK4(mState.theta, mState.omega, M_ARM_LENGTH, P.DEFAULT_G, subDt);
+        const next = P.stepPendulumRK4(mState.theta, mState.omega, M_ARM_LENGTH, currentG, subDt);
         mState.theta = next.theta;
         mState.omega = next.omega;
 
@@ -1688,7 +1718,7 @@
   mEl.recordBtn.addEventListener('click', () => {
     const v0 = parseFloat(mEl.vel.value);
     const calH = parseFloat(mEl.caliper.value);
-    const vPrime = Math.sqrt(2 * P.DEFAULT_G * calH);
+    const vPrime = Math.sqrt(2 * currentG * calH);
     const ratio = vPrime > 0 && vPrime < v0 ? (v0 / vPrime - 1).toFixed(2) : '—';
 
     mState.trials.push({
